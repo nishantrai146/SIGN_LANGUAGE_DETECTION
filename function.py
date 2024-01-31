@@ -68,10 +68,12 @@ def extract_keypoints(results):
     Returns:
     - Flattened array of hand landmarks.
     """
+    keypoints = []
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
             rh = np.array([[res.x, res.y, res.z] for res in hand_landmarks.landmark]).flatten() if hand_landmarks else np.zeros(21 * 3)
-            return np.concatenate([rh])
+            keypoints.append(rh)
+    return keypoints
 
 def main():
     # Initialize MediaPipe Hands model
@@ -84,6 +86,7 @@ def main():
     cap = cv2.VideoCapture(0)
 
     for sequence in range(no_sequences):
+        sequence_data = []
         for frame_num in range(sequence_length):
             _, frame = cap.read()
 
@@ -98,17 +101,28 @@ def main():
 
             # Extract keypoints
             keypoints = extract_keypoints(results)
-            print(f"Keypoints: {keypoints}")
-
-            # Save captured data (adjust as needed based on your requirements)
-            # ...
+            sequence_data.append(keypoints)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
+        # Save captured data for the sequence (adjust as needed)
+        save_data(sequence_data, sequence)
+
     # Release the video capture and close windows
     cap.release()
     cv2.destroyAllWindows()
+
+def save_data(sequence_data, sequence):
+    # Define the directory to save data
+    save_dir = os.path.join(DATA_PATH, f"Sequence_{sequence}")
+
+    # Create the directory if it doesn't exist
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Save keypoints data for each frame in the sequence
+    for frame_num, keypoints in enumerate(sequence_data):
+        np.save(os.path.join(save_dir, f"frame_{frame_num}.npy"), keypoints)
 
 if __name__ == "__main__":
     main()
